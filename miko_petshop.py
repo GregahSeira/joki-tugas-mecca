@@ -27,10 +27,6 @@ FIELD_PRODUK = [("kode", "Kode Produk"), ("nama", "Nama Produk"), ("kategori", "
                 ("harga", "Harga per Unit (Rp)"), ("lokasi", "Lokasi Penyimpanan")]
 PERIODE = {"Seluruh Data": None, "7 Hari Terakhir": 7, "30 Hari Terakhir": 30}
 FILE_EXCEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data miko petshop.xlsx")
-LOKASI = {"Makanan Anjing": "Rak A", "Makanan Kucing": "Rak B", "Cat Litter": "Rak C"}
-# Transaksi tambahan (di luar Excel) agar jumlah transaksi > 30 baris
-TAMBAHAN = [("05/10/2026", "CF004", "Keluar", 2), ("08/10/2026", "CL001", "Keluar", 3),
-            ("10/10/2026", "DF002", "Keluar", 3)]
 
 # ---------- Pemuatan & pembersihan data ----------
 def bersihkan_tanggal(v):
@@ -46,19 +42,16 @@ def muat_data():
     for r in ws.iter_rows(min_row=2, values_only=True):
         if not r[0]:
             continue
-        kode, nama, kat, satuan, awal, mn, harga, tgl, jenis, jml, ket = r[:11]
+        kode, nama, kat, satuan, awal, mn, harga, tgl, jenis, jml, ket, lokasi = r[:12]
         kat = " ".join(kat.split())  # hilangkan spasi ganda
         if kat not in kategori:
             kategori.append(kat)
         if kode not in produk:  # stok awal = nilai pertama tiap produk
             produk[kode] = dict(kode=kode, nama=nama, kategori=kat, satuan=satuan, awal=int(awal),
                                 min=int(mn), harga=int("".join(c for c in str(harga) if c.isdigit())),
-                                lokasi=LOKASI.get(kat, "Gudang"))
+                                lokasi=lokasi)
         transaksi.append(dict(tgl=bersihkan_tanggal(tgl), kode=kode, jenis=jenis, jml=int(jml),
                               lok=produk[kode]["lokasi"] if jenis == "Masuk" else "-", ket=ket))
-    for tgl, kode, jenis, jml in TAMBAHAN:
-        transaksi.append(dict(tgl=bersihkan_tanggal(tgl), kode=kode, jenis=jenis, jml=jml,
-                              lok="-", ket="Data tambahan"))
     transaksi.sort(key=lambda t: t["tgl"])
     return dict(sorted(produk.items())), transaksi, kategori
 
